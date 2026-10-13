@@ -1,0 +1,14 @@
+node_modules/
+dist/
+.astro/
+.DS_Store
+npm-debug.log*
+.env
+.env.*
+
+# Claude Code: personal overrides and internal scratch
+.claude/settings.local.json
+.claude/.cc-writes/
+
+# Yarn 4: machine-specific install cache
+.yarn/install-state.gz

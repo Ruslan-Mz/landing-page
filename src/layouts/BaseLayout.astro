@@ -1,0 +1,43 @@
+---
+import { ClientRouter } from 'astro:transitions';
+import Seo from '../components/Seo.astro';
+import Schema from '../components/Schema.astro';
+import type { Locale } from '../lib/content';
+
+// Self-hosted type: only the weights actually used. These aggregate files carry
+// per-subset @font-face rules with unicode-range, so a Latin-only reader never
+// downloads the Cyrillic files (and vice versa). The per-subset files shipped by
+// fontsource omit unicode-range, which would make the subsets collide — don't use them.
+import '@fontsource/cormorant-garamond/500.css';
+import '@fontsource/pt-serif/400.css';
+import '@fontsource/pt-serif/700.css';
+import '@fontsource/pt-serif/400-italic.css';
+import '@fontsource/jetbrains-mono/400.css';
+import '@fontsource/jetbrains-mono/500.css';
+
+import '../styles/global.css';
+
+interface Props {
+  face: 'research' | 'engineering';
+  title: string;
+  description: string;
+  canonical: string;
+  alts?: Record<Locale, string>;
+  locale: Locale;
+  ogImage?: string;
+  noindex?: boolean;
+}
+const { face, title, description, canonical, alts, locale, ogImage, noindex } = Astro.props;
+---
+<!doctype html>
+<html lang={locale}>
+  <head>
+    <Seo {title} {description} {canonical} {alts} {locale} {ogImage} {noindex} />
+    {/* The identity graph belongs on the real pages; a 404 is not one of them. */}
+    {!noindex && <Schema {face} {locale} {canonical} />}
+    <ClientRouter />
+  </head>
+  <body>
+    <slot />
+  </body>
+</html>

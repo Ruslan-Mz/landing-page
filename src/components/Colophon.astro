@@ -1,0 +1,33 @@
+---
+import Chop from './Chop.astro';
+import { CONTACTS, type Face, type Locale } from '../lib/content';
+
+interface Props { face: Face; locale: Locale; colophon: string; languages?: string }
+const { face, locale, colophon, languages } = Astro.props;
+const email = CONTACTS[face][locale].email;
+---
+<div class="wrap">
+  <footer>
+    <!-- Three zones by meaning: who and how to reach · notes · the mark.
+         Sentences stay left-aligned in their own column rather than being
+         right-aligned, which would leave a ragged left edge to read against. -->
+    <div class="foot-grid">
+      <div class="foot-id">
+        <div class="foot-name">Ruslan Mozhaev</div>
+        <div class="foot-meta">
+          mozhaev.pro<br />
+          {email && <a href={`mailto:${email}`}>{email}</a>}
+        </div>
+      </div>
+
+      <div class="foot-notes">
+        {languages && <p class="foot-langs">{languages}</p>}
+        <p class="colophon">{colophon}</p>
+      </div>
+
+      <div class="foot-mark">
+        <Chop class="chop" />
+      </div>
+    </div>
+  </footer>
+</div>

@@ -1,0 +1,98 @@
+---
+interface Props { capPop: string; capInd: string }
+const { capPop, capInd } = Astro.props;
+---
+<div class="viz-wrap" aria-hidden="true">
+  <canvas id="net"></canvas>
+  <div class="viz-cap"><span class="a">{capPop}</span> → <span class="b">{capInd}</span></div>
+</div>
+
+<script>
+  // Population settling toward the individual — the research thesis, in motion.
+  // Init on astro:page-load so it survives view-transition navigations.
+  function initNet() {
+    const canvas = document.getElementById('net') as HTMLCanvasElement | null;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    let W = 0, H = 0, DPR = 1, raf = 0, t = 0;
+    let nodes: Array<{ x: number; y: number; vx: number; vy: number; r: number }> = [];
+    let indNode = { x: 0, y: 0, base: 5.2 };
+    const reduce = window.matchMedia('(prefers-reduced-motion:reduce)').matches;
+    const EMBER = '#C7772C';
+
+    function size() {
+      DPR = Math.min(window.devicePixelRatio || 1, 2);
+      const r = canvas!.getBoundingClientRect();
+      W = r.width; H = r.height;
+      canvas!.width = W * DPR; canvas!.height = H * DPR;
+      ctx!.setTransform(DPR, 0, 0, DPR, 0, 0);
+    }
+    function init() {
+      size();
+      const N = W < 360 ? 26 : 38;
+      nodes = [];
+      for (let i = 0; i < N; i++) {
+        nodes.push({
+          x: Math.random() * W, y: Math.random() * H,
+          vx: (Math.random() - .5) * .18, vy: (Math.random() - .5) * .18,
+          r: 1.3 + Math.random() * 1.4,
+        });
+      }
+      indNode = { x: W * 0.62, y: H * 0.6, base: 5.2 };
+    }
+    function draw() {
+      ctx!.clearRect(0, 0, W, H);
+      for (const n of nodes) {
+        if (!reduce) {
+          n.x += n.vx; n.y += n.vy;
+          if (n.x < 0 || n.x > W) n.vx *= -1;
+          if (n.y < 0 || n.y > H) n.vy *= -1;
+        }
+        const dx = indNode.x - n.x, dy = indNode.y - n.y;
+        const d = Math.hypot(dx, dy);
+        if (d < W * 0.46) {
+          const a = (1 - d / (W * 0.46)) * 0.30;
+          ctx!.strokeStyle = 'rgba(26,107,110,' + a.toFixed(3) + ')';
+          ctx!.lineWidth = .6;
+          ctx!.beginPath(); ctx!.moveTo(n.x, n.y); ctx!.lineTo(indNode.x, indNode.y); ctx!.stroke();
+        }
+      }
+      for (let i = 0; i < nodes.length; i++) {
+        for (let j = i + 1; j < nodes.length; j++) {
+          const a = nodes[i], b = nodes[j];
+          const d = Math.hypot(a.x - b.x, a.y - b.y);
+          if (d < W * 0.20) {
+            ctx!.strokeStyle = 'rgba(110,114,122,' + ((1 - d / (W * 0.20)) * 0.12).toFixed(3) + ')';
+            ctx!.lineWidth = .5;
+            ctx!.beginPath(); ctx!.moveTo(a.x, a.y); ctx!.lineTo(b.x, b.y); ctx!.stroke();
+          }
+        }
+      }
+      for (const n of nodes) {
+        ctx!.fillStyle = 'rgba(26,107,110,.55)';
+        ctx!.beginPath(); ctx!.arc(n.x, n.y, n.r, 0, 7); ctx!.fill();
+      }
+      t += 0.02;
+      const pr = indNode.base + (reduce ? 0 : Math.sin(t) * 0.9);
+      ctx!.beginPath(); ctx!.arc(indNode.x, indNode.y, pr + 7, 0, 7);
+      ctx!.fillStyle = 'rgba(199,119,44,.12)'; ctx!.fill();
+      ctx!.beginPath(); ctx!.arc(indNode.x, indNode.y, pr, 0, 7);
+      ctx!.fillStyle = EMBER; ctx!.fill();
+      ctx!.strokeStyle = 'rgba(255,255,255,.8)'; ctx!.lineWidth = 1.5; ctx!.stroke();
+      if (!reduce) raf = requestAnimationFrame(draw);
+    }
+    function start() { cancelAnimationFrame(raf); init(); draw(); }
+
+    let rt: number | undefined;
+    const onResize = () => { clearTimeout(rt); rt = window.setTimeout(start, 150); };
+    window.addEventListener('resize', onResize);
+    // stop the loop when navigating away (view transitions)
+    document.addEventListener('astro:before-swap', () => { cancelAnimationFrame(raf); window.removeEventListener('resize', onResize); }, { once: true });
+
+    start();
+  }
+
+  document.addEventListener('astro:page-load', initNet);
+</script>

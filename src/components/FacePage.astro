@@ -1,0 +1,98 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import Topbar from './Topbar.astro';
+import ContactLinks from './ContactLinks.astro';
+import NetworkViz from './NetworkViz.astro';
+import Cards from './Cards.astro';
+import Facts from './Facts.astro';
+import Colophon from './Colophon.astro';
+import Portrait from './Portrait.astro';
+import Process from './Process.astro';
+import { CONTENT, type Face, type Locale } from '../lib/content';
+import { pathFor, altsFor, crossFor } from '../lib/routes';
+
+interface Props {
+  face: Face;
+  locale: Locale;
+  canonicalOverride?: string;   // e.g. /research -> canonical '/'
+}
+const { face, locale, canonicalOverride } = Astro.props;
+
+const c = CONTENT[face][locale];
+const canonical = canonicalOverride ?? pathFor(face, locale);
+const alts = altsFor(face);
+const cross = { ...crossFor(face, locale), label: c.crossLabel };
+const ogImage = `/og/${face === 'research' ? 'research' : 'dev'}${locale === 'ru' ? '-ru' : ''}.png`;
+
+const capPop = locale === 'en' ? 'population' : 'популяция';
+const capInd = locale === 'en' ? 'the individual' : 'индивид';
+---
+<BaseLayout
+  {face}
+  title={c.htmlTitle}
+  description={c.metaDesc}
+  {canonical}
+  {alts}
+  {locale}
+  {ogImage}
+>
+  <div class="wrap">
+    <Topbar eyebrow={c.eyebrow} {locale} langHrefs={alts} {cross} />
+
+    <header class="hero">
+      <div class="hero-grid">
+        <div>
+          <h1 class="name" set:html={c.name} />
+          <p class="lede" set:html={c.lede} />
+          <p class="sub" set:html={c.sub} />
+          {c.avail && <div class="avail">{c.avail}</div>}
+          <ContactLinks {face} {locale} label={c.contactsLabel} />
+        </div>
+
+        {face === 'research'
+          ? <NetworkViz {capPop} {capInd} />
+          : <Portrait {face} variant="hero" edge="soft" accentSide="right" />
+        }
+      </div>
+    </header>
+  </div>
+
+  <hr class="rule" />
+
+  <div class="wrap">
+    <section>
+      <div class="sec-head" set:html={c.secHead} />
+      <Cards cards={c.cards} />
+    </section>
+  </div>
+
+  {c.process && (
+    <>
+      <hr class="rule" />
+      <div class="wrap">
+        <section>
+          <div class="sec-head" set:html={c.processHead} />
+          <Process items={c.process} />
+        </section>
+      </div>
+    </>
+  )}
+
+  <hr class="rule" />
+
+  <div class="wrap">
+    <section>
+      <div class="sec-head" set:html={c.bgHead} />
+      <div class="bg-grid">
+        <div>
+          {face === 'research' && <Portrait {face} variant="bio" edge="soft" />}
+          <p class="bg-lead" set:html={c.bgLead} />
+        </div>
+        <Facts facts={c.facts} />
+      </div>
+    </section>
+  </div>
+
+  <Colophon {face} {locale} colophon={c.colophon} languages={c.languages} />
+</BaseLayout>
+

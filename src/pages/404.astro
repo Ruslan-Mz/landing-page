@@ -1,0 +1,47 @@
+---
+// Both hosts need a real 404 document: Netlify serves 404.html automatically,
+// and S3-compatible static hosting has to be pointed at it as the error page.
+// Bilingual, because a wrong URL gives no clue who is holding it.
+import BaseLayout from '../layouts/BaseLayout.astro';
+import { pathFor } from '../lib/routes';
+---
+<BaseLayout
+  face="research"
+  title="Page not found — Ruslan Mozhaev"
+  description="This address does not exist on mozhaev.pro."
+  canonical="/404/"
+  locale="en"
+  noindex
+>
+  <div class="wrap notfound">
+    <p class="code">404</p>
+    <h1 class="name">Page not found</h1>
+    <p class="lede">This address does not exist.</p>
+    <p class="lede" lang="ru">Такой страницы здесь нет.</p>
+
+    <nav class="links" aria-label="Go to">
+      <a class="primary" href={pathFor('research', 'en')}>Research</a>
+      <a href={pathFor('engineering', 'en')}>Engineering</a>
+      <a href={pathFor('research', 'ru')} hreflang="ru" lang="ru">Исследования</a>
+      <a href={pathFor('engineering', 'ru')} hreflang="ru" lang="ru">Разработка</a>
+    </nav>
+  </div>
+</BaseLayout>
+
+<style>
+  /* Centred in the viewport rather than sitting under a missing topbar. */
+  .notfound {
+    min-height: 72vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding-block: clamp(56px, 11vw, 118px);
+  }
+  .code {
+    font-family: var(--mono); font-size: 12px; letter-spacing: .2em;
+    color: var(--teal); margin-bottom: 18px;
+  }
+  .notfound .name { margin-bottom: 14px; }
+  .notfound .lede { margin-bottom: 6px; }
+  .notfound .links { margin-top: 26px; }
+</style>

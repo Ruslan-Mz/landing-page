@@ -1,0 +1,33 @@
+---
+import type { Face, Locale } from '../lib/content';
+
+interface Props {
+  eyebrow: string;
+  locale: Locale;
+  langHrefs: Record<Locale, string>;
+  cross: { href: string; label: string; face: Face };
+}
+const { eyebrow, locale, langHrefs, cross } = Astro.props;
+
+// The link is tinted with the accent of the face it leads TO, so the colour
+// previews the destination: teal for research, ember for engineering.
+const targetAccent = cross.face === 'research' ? 'var(--teal)' : 'var(--ember)';
+---
+<div class="topbar">
+  <div class="eyebrow" set:html={eyebrow} />
+
+  <div class="switches">
+    <!-- Secondary: a preference, set once. Plain text, no chrome. -->
+    <nav class="langs" aria-label="Language">
+      <a href={langHrefs.en} aria-current={locale === 'en' ? 'true' : undefined} hreflang="en">EN</a>
+      <span aria-hidden="true">·</span>
+      <a href={langHrefs.ru} aria-current={locale === 'ru' ? 'true' : undefined} hreflang="ru">RU</a>
+    </nav>
+
+    <!-- Primary: the two-faces architecture is the site's main navigation. -->
+    <a class="face-link" href={cross.href} style={`--target:${targetAccent}`}>
+      <span>{cross.label}</span>
+      <span class="arr" aria-hidden="true">→</span>
+    </a>
+  </div>
+</div>

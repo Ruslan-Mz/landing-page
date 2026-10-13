@@ -1,0 +1,46 @@
+/* ============================================================
+   Design tokens — paper & ink identity
+   The palette is the signature material: paper as page/canvas,
+   ink as writing. Teal = population, ember = the individual.
+   Both faces are typeset in Cyrillic-complete faces, so RU and EN
+   pages look identical — Fraunces had no Cyrillic and fell back to Georgia.
+   ============================================================ */
+@layer tokens {
+  :root {
+    /* surface */
+    --paper:    #F2F3F1;
+    --paper-2:  #ECEEEB;
+    --paper-3:  #E6E8E4;
+
+    /* ink */
+    --ink:      #16181D;
+    --ink-soft: #3C3F46;
+    --muted:    #6E727A;
+    --line:     #DDDDD6;
+
+    /* accents */
+    --teal:      #1A6B6E;   /* population / research */
+    --teal-deep: #12565A;
+    --ember:     #C7772C;   /* research: the individual · engineering: delivery accent */
+
+    /* type — display face for the name only, text face for everything else.
+       Cormorant is drawn for large sizes (high contrast, small x-height);
+       PT Serif is a screen text face with native, not adapted, Cyrillic. */
+    --display: "Cormorant Garamond", Georgia, "Times New Roman", serif;
+    --body:    "PT Serif", Georgia, "Times New Roman", serif;
+    --mono:    "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+
+    /* optical alignment: large type sits a few px right of the margin
+       because the eye reads the edge of the ink, not the glyph box.
+       Measured: 3px at 76px (Cormorant), 1px at 29px (PT Serif). */
+    --optical-display: -0.04em;
+    --optical-lede:    -0.03em;
+
+    /* measure & rhythm */
+    --maxw: 1080px;
+    --gutter: clamp(20px, 5vw, 28px);
+
+    /* selection */
+    --select-bg: color-mix(in oklab, var(--teal) 22%, transparent);
+  }
+}

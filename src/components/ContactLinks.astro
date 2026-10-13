@@ -1,0 +1,30 @@
+---
+import { CONTACTS, CONTACT_ORDER, type Face, type Locale } from '../lib/content';
+import { ICONS } from '../lib/icons';
+
+interface Props { face: Face; locale: Locale; label: string }
+const { face, locale, label } = Astro.props;
+const contacts = CONTACTS[face][locale];
+
+const items = CONTACT_ORDER
+  .map(({ key, label: l, primary }) => {
+    const val = contacts[key];
+    if (!val) return null;
+    const href = key === 'email' ? `mailto:${val}` : val;
+    const external = key !== 'email';
+    return { key, label: l, href, primary: !!primary, external };
+  })
+  .filter(Boolean) as Array<{ key: string; label: string; href: string; primary: boolean; external: boolean }>;
+---
+<nav class="links" aria-label={label}>
+  {items.map((it) => (
+    <a
+      href={it.href}
+      class={it.primary ? 'primary' : undefined}
+      {...(it.external ? { target: '_blank', rel: 'noopener' } : {})}
+    >
+      <Fragment set:html={ICONS[it.key]} />
+      <span>{it.label}</span>
+    </a>
+  ))}
+</nav>

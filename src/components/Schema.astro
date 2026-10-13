@@ -1,0 +1,52 @@
+---
+// Structured data (schema.org/Person). Its main job here is `sameAs`:
+// it ties mozhaev.pro, ORCID, GitHub and LinkedIn together as one entity,
+// which matters when the same person is split across two faces and two languages.
+import { CONTACTS, type Face, type Locale } from '../lib/content';
+import { abs } from '../lib/routes';
+
+interface Props { face: Face; locale: Locale; canonical: string }
+const { face, locale, canonical } = Astro.props;
+
+const site = Astro.site;
+const contacts = CONTACTS[face][locale];
+
+// Every stable public profile, deduped — the identity graph.
+const sameAs = [
+  'https://orcid.org/0009-0008-7325-6820',
+  'https://github.com/Ruslan-Mz',
+  'https://www.linkedin.com/in/ruslanmozhaev',
+];
+
+const jobTitle = face === 'research'
+  ? (locale === 'ru' ? 'Независимый исследователь ИИ' : 'Independent AI researcher')
+  : (locale === 'ru' ? 'Senior mobile & full-stack инженер' : 'Senior mobile & full-stack engineer');
+
+const knowsAbout = face === 'research'
+  ? ['Artificial intelligence', 'Multi-agent systems', 'Continual learning',
+     'Healthy longevity', 'Healthspan', 'Intelligence augmentation']
+  : ['React Native', 'TypeScript', 'Node.js', 'Mobile application development',
+     'Full-stack development', 'LLM integration', 'Offline-first architecture', 'Accessibility'];
+
+const person: Record<string, unknown> = {
+  '@context': 'https://schema.org',
+  '@type': 'Person',
+  '@id': abs(site, '/') + '#person',
+  name: 'Ruslan Mozhaev',
+  url: abs(site, canonical),
+  jobTitle,
+  email: contacts.email ? `mailto:${contacts.email}` : undefined,
+  knowsAbout,
+  knowsLanguage: ['ru', 'en', 'lv'],
+  alumniOf: {
+    '@type': 'CollegeOrUniversity',
+    name: 'Riga Technical University',
+    sameAs: 'https://www.rtu.lv/',
+  },
+  sameAs,
+};
+
+// Drop undefined keys so the emitted JSON stays clean.
+const json = JSON.stringify(person, (_k, v) => (v === undefined ? undefined : v));
+---
+<script type="application/ld+json" set:html={json} />

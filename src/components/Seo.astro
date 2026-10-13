@@ -1,0 +1,52 @@
+---
+import { abs } from '../lib/routes';
+import type { Locale } from '../lib/content';
+
+interface Props {
+  title: string;
+  description: string;
+  canonical: string;          // site-root path, e.g. '/dev'
+  alts?: Record<Locale, string>;
+  locale: Locale;
+  ogImage?: string;           // site-root path to a 1200x630 image
+  noindex?: boolean;          // 404 and other pages that must stay out of search
+}
+const { title, description, canonical, alts, locale, ogImage = '/og/research.png', noindex } = Astro.props;
+const site = Astro.site;
+const canonicalUrl = abs(site, canonical);
+const ogUrl = abs(site, ogImage);
+const ogLocale = locale === 'ru' ? 'ru_RU' : 'en_US';
+---
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>{title}</title>
+<meta name="description" content={description} />
+{/* A noindex page claims no canonical and no language pair — it isn't a
+    destination, so pointing search engines at it either way is noise. */}
+{noindex
+  ? <meta name="robots" content="noindex, follow" />
+  : <>
+      <link rel="canonical" href={canonicalUrl} />
+      {alts && Object.entries(alts).map(([lang, p]) => (
+        <link rel="alternate" hreflang={lang} href={abs(site, p)} />
+      ))}
+      {alts && <link rel="alternate" hreflang="x-default" href={abs(site, alts.en)} />}
+    </>
+}
+
+<meta property="og:type" content="profile" />
+<meta property="og:title" content={title} />
+<meta property="og:description" content={description} />
+<meta property="og:url" content={canonicalUrl} />
+<meta property="og:image" content={ogUrl} />
+<meta property="og:locale" content={ogLocale} />
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content={title} />
+<meta name="twitter:description" content={description} />
+<meta name="twitter:image" content={ogUrl} />
+
+<link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+<link rel="icon" href="/favicon.ico" sizes="any" />
+<link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+<meta name="theme-color" content="#F2F3F1" />
+

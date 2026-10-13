@@ -1,0 +1,35 @@
+---
+// "How I work" — client-facing reliability, not a productivity system tour.
+// Deliberately quieter than the Cards grid: rules, not boxes.
+import type { Card } from '../lib/content';
+
+interface Props { items: Card[] }
+const { items } = Astro.props;
+---
+<ul class="process">
+  {items.map((it) => (
+    <li>
+      <h3 set:html={it.h} />
+      <p set:html={it.p} />
+    </li>
+  ))}
+</ul>
+
+<style>
+  .process { list-style: none; display: grid; grid-template-columns: repeat(3, 1fr); gap: 0 34px; }
+  .process li { border-top: 1px solid var(--line); padding-top: 16px; }
+  .process h3 {
+    font-family: var(--body); font-weight: 600; font-size: 15px;
+    letter-spacing: .01em; margin-bottom: 8px; color: var(--ink);
+  }
+  .process h3::before {
+    content: ''; display: inline-block; width: 14px; height: 2px;
+    background: var(--ember); vertical-align: middle; margin-right: 9px;
+  }
+  .process p { font-size: 15px; color: var(--ink-soft); line-height: 1.5; }
+
+  @media (max-width: 860px) {
+    .process { grid-template-columns: 1fr; gap: 0; }
+    .process li { padding: 15px 0; }
+  }
+</style>

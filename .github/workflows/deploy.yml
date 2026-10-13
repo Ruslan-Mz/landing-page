@@ -1,0 +1,134 @@
+name: Deploy
+
+# One build, two hosts. The same artifact goes to the global host (Netlify) and
+# the Russian host (S3-compatible object storage), so the two can never drift.
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+# Never cancel a running deploy: the RU upload is several sequential S3 syncs,
+# and killing it between them would leave that host half-updated.
+concurrency:
+  group: deploy-${{ github.ref }}
+  cancel-in-progress: false
+
+# The workflow only reads the repository; deploy credentials come from secrets.
+permissions:
+  contents: read
+
+# Each host is switched on by a repository variable (Settings → Secrets and
+# variables → Actions → Variables): DEPLOY_GLOBAL=true, DEPLOY_RU=true.
+# Until a host has its secrets and its variable, its job is skipped and the
+# workflow is just a build check — green, not a failed deploy.
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      # Yarn 4, pinned by the packageManager field in package.json. Corepack
+      # installs exactly that version, so CI and local builds use the same one.
+      - run: corepack enable
+      - run: yarn install --immutable
+      - run: yarn build
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist
+          retention-days: 7
+
+  deploy-global:
+    needs: build
+    if: vars.DEPLOY_GLOBAL == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist
+      - name: Deploy to Netlify
+        env:
+          NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
+          NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID }}
+        run: npx --yes netlify-cli@17 deploy --dir=dist --prod --no-build
+
+  deploy-ru:
+    needs: build
+    if: vars.DEPLOY_RU == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist
+
+      # Order matters, and nothing is deleted until the new pages are live:
+      #   1. add the new hashed assets, leaving the old ones in place
+      #   2. swap the HTML over to them
+      #   3. only then remove whatever the new build no longer references
+      # Deleting first would leave the still-current HTML pointing at assets
+      # that are already gone — a broken site for the length of the deploy.
+      # Hashed assets can be cached forever; HTML must not be.
+      - name: Add new immutable assets
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.RU_S3_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.RU_S3_SECRET }}
+          AWS_DEFAULT_REGION: ru-central1
+        run: |
+          aws s3 sync dist/_astro "s3://${{ secrets.RU_S3_BUCKET }}/_astro" \
+            --endpoint-url "${{ secrets.RU_S3_ENDPOINT }}" \
+            --cache-control "public, max-age=31536000, immutable"
+
+      - name: Upload pages and the rest
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.RU_S3_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.RU_S3_SECRET }}
+          AWS_DEFAULT_REGION: ru-central1
+        run: |
+          aws s3 sync dist "s3://${{ secrets.RU_S3_BUCKET }}" \
+            --endpoint-url "${{ secrets.RU_S3_ENDPOINT }}" \
+            --exclude "_astro/*" \
+            --cache-control "public, max-age=0, must-revalidate"
+
+      # Prune pass. --size-only so identical files aren't re-uploaded (which
+      # would drop the cache headers set above); the only job here is deletion.
+      - name: Remove files the new build no longer uses
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.RU_S3_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.RU_S3_SECRET }}
+          AWS_DEFAULT_REGION: ru-central1
+        run: |
+          aws s3 sync dist "s3://${{ secrets.RU_S3_BUCKET }}" \
+            --endpoint-url "${{ secrets.RU_S3_ENDPOINT }}" \
+            --size-only \
+            --delete
+
+  # Fails loudly if either host stops serving the real page.
+  verify:
+    needs: [deploy-global, deploy-ru]
+    # Runs when at least one host was deployed and nothing failed; a skipped
+    # host is simply not checked.
+    if: ${{ !cancelled() && !contains(needs.*.result, 'failure') && (vars.DEPLOY_GLOBAL == 'true' || vars.DEPLOY_RU == 'true') }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Every enabled host serves the site
+        env:
+          GLOBAL_ON: ${{ vars.DEPLOY_GLOBAL }}
+          RU_ON: ${{ vars.DEPLOY_RU }}
+          GLOBAL_URL: ${{ secrets.GLOBAL_ORIGIN_URL }}
+          RU_URL: ${{ secrets.RU_ORIGIN_URL }}
+        run: |
+          set -e
+          urls=()
+          if [ "$GLOBAL_ON" = "true" ]; then urls+=("$GLOBAL_URL"); fi
+          if [ "$RU_ON" = "true" ]; then urls+=("$RU_URL"); fi
+          for url in "${urls[@]}"; do
+            echo "checking $url"
+            code=$(curl -s -o /tmp/page -w '%{http_code}' --max-time 20 "$url")
+            [ "$code" = "200" ] || { echo "HTTP $code from $url"; exit 1; }
+            grep -q "Ruslan Mozhaev" /tmp/page || { echo "unexpected content at $url"; exit 1; }
+          done
+          echo "enabled origins OK"

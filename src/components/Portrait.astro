@@ -1,0 +1,86 @@
+---
+// Portrait, served through astro:assets: AVIF + responsive widths, generated at build.
+// The hero copy is the LCP element on /dev, so it loads eagerly with high priority;
+// the small research bio copy stays lazy.
+import { Image } from 'astro:assets';
+import portrait from '../assets/portrait.png';
+import type { Face } from '../lib/content';
+
+interface Props {
+  face: Face;
+  variant?: 'hero' | 'bio';
+  edge?: 'soft' | 'sharp';   // soft = CSS-feathered edges; sharp = plain rectangle
+  accentSide?: 'left' | 'right';
+  alt?: string;
+  caption?: string;
+}
+const {
+  face,
+  variant = 'hero',
+  edge = 'soft',
+  accentSide = 'left',
+  alt = 'Ruslan Mozhaev',
+  caption,
+} = Astro.props;
+
+const accent = face === 'research' ? 'var(--teal)' : 'var(--ember)';
+const isHero = variant === 'hero';
+---
+<figure
+  class={`portrait portrait--${variant} ${edge} accent-${accentSide}`}
+  style={`--accent:${accent}`}
+>
+  <Image
+    src={portrait}
+    {alt}
+    format="avif"
+    quality={72}
+    widths={isHero ? [300, 400, 800] : [210, 420]}
+    sizes={isHero ? '(max-width: 860px) 300px, 400px' : '210px'}
+    loading={isHero ? 'eager' : 'lazy'}
+    fetchpriority={isHero ? 'high' : undefined}
+    decoding={isHero ? 'sync' : 'async'}
+  />
+  {caption && <figcaption>{caption}</figcaption>}
+</figure>
+
+<style>
+  .portrait { margin: 0; display: inline-block; }
+  .portrait img { display: block; width: 100%; height: auto; }
+
+  /* 2px, not 3: the rule should mark the edge, not fence the picture in.
+     The gap grows a little to keep the same optical distance from the image. */
+  .portrait.accent-left  { border-left: 2px solid var(--accent); padding-left: 17px; }
+  .portrait.accent-right { border-right: 2px solid var(--accent); padding-right: 17px; }
+
+  .portrait--hero { width: 100%; max-width: 400px; }
+  .portrait--bio  { width: min(210px, 48%); margin-bottom: 22px; }
+
+  /* soft: feather the edges so the figure dissolves into the paper.
+     The side carrying the accent rule stays crisp — it should hold the line. */
+  .portrait.soft img {
+    -webkit-mask: var(--mask);
+            mask: var(--mask);
+    -webkit-mask-composite: source-in;
+            mask-composite: intersect;
+  }
+  .portrait.soft.accent-left img {
+    --mask:
+      linear-gradient(to right, #000 0, #000 88%, transparent 100%),
+      linear-gradient(to bottom, transparent 0, #000 7%, #000 93%, transparent 100%);
+  }
+  .portrait.soft.accent-right img {
+    --mask:
+      linear-gradient(to right, transparent 0, #000 12%, #000 100%),
+      linear-gradient(to bottom, transparent 0, #000 7%, #000 93%, transparent 100%);
+  }
+
+  .portrait figcaption {
+    font-family: var(--mono); font-size: 11.5px; letter-spacing: .06em;
+    color: var(--muted); margin-top: 12px;
+  }
+
+  @media (max-width: 860px) {
+    .portrait--hero { max-width: 300px; margin-inline: auto; }
+  }
+</style>

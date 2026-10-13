@@ -1,0 +1,14 @@
+---
+import type { Card } from '../lib/content';
+interface Props { cards: Card[] }
+const { cards } = Astro.props;
+---
+<div class="cards">
+  {cards.map((c) => (
+    <div class="card">
+      {c.idx && <span class="idx">{c.idx}</span>}
+      <h3 set:html={c.h} />
+      <p set:html={c.p} />
+    </div>
+  ))}
+</div>

@@ -1,0 +1,13 @@
+---
+import type { Fact } from '../lib/content';
+interface Props { facts: Fact[] }
+const { facts } = Astro.props;
+---
+<ul class="facts">
+  {facts.map((f) => (
+    <li>
+      <span class="yr">{f.yr}</span>
+      <span set:html={f.t} />
+    </li>
+  ))}
+</ul>

@@ -17,6 +17,54 @@ mozhaev.pro ─ GeoDNS┤
 
 ---
 
+## 0. Этап 1 — Yandex Object Storage как основной хостинг для всех
+
+GeoDNS требует переноса зоны и времени на проверку. Быстрее и без риска для
+почты: сначала перевести `mozhaev.pro` целиком на российский origin. Yandex
+Cloud доступен и из ЕС, так что сайт открывается везде. Netlify остаётся
+запасной копией; GeoDNS (§3) — этап 2.
+
+DNS остаётся в Namecheap: корень домена указывается записью `ALIAS`
+(аналог ANAME), MX и прочие записи не трогаются.
+
+1. **Namecheap → Advanced DNS:** TTL записей `@` и `www` → 5 min. Сразу, до
+   всего остального: старый TTL (30 мин) должен истечь к моменту переключения.
+2. **Yandex Cloud:** платёжный аккаунт в статусе `ACTIVE`/`TRIAL_ACTIVE`.
+3. **Бакет `mozhaev.pro`** (имя = домену, иначе свой домен не привяжется):
+   чтение объектов — «Для всех»; Настройки → Веб-сайт → Хостинг,
+   главная `index.html`, ошибка `404.html`.
+4. **Сервисный аккаунт** `site-deploy`, роль `storage.editor` на каталог →
+   «Создать статический ключ доступа». Секрет показывается один раз.
+5. **GitHub → Settings → Secrets and variables → Actions:**
+   секреты `RU_S3_KEY_ID`, `RU_S3_SECRET`, `RU_S3_BUCKET=mozhaev.pro`,
+   `RU_S3_ENDPOINT=https://storage.yandexcloud.net`,
+   `RU_ORIGIN_URL=http://mozhaev.pro.website.yandexcloud.net/`;
+   переменная `DEPLOY_RU=true`. Затем push (или Run workflow).
+   `RU_ORIGIN_URL` — по http: у бакета с точками в имени нет валидного
+   сертификата на `*.website.yandexcloud.net`.
+6. **Проверка до переключения DNS:** `http://mozhaev.pro.website.yandexcloud.net/`
+   открывается со стилями и шрифтами, `/dev/`, `/ru/`, `/dev/ru/`, `/nope/` → 404.
+7. **Certificate Manager → Let's Encrypt** на `mozhaev.pro` и `www.mozhaev.pro`,
+   проверка через DNS. Запись `_acme-challenge` (CNAME), которую покажет
+   консоль, добавить в Namecheap (поле Host — без домена). Дождаться статуса
+   `Issued` (обычно минуты).
+8. **Бакет → Безопасность → HTTPS:** источник — Certificate Manager, выбрать
+   сертификат. Применяется до ~30 минут.
+9. **Переключение (Namecheap):** удалить `A @ 75.2.60.5` (Netlify), добавить
+   `ALIAS @ → mozhaev.pro.website.yandexcloud.net`, TTL 5 min.
+10. **www:** второй бакет `www.mozhaev.pro`, Веб-сайт → «Переадресация» на
+    `mozhaev.pro` по https; HTTPS — тот же сертификат;
+    `CNAME www → www.mozhaev.pro.website.yandexcloud.net`.
+11. **Проверка:** из РФ без VPN (мобильный интернет и домашний провайдер),
+    из ЕС; `curl -I https://mozhaev.pro/` — сертификат Let's Encrypt, 200.
+
+Откат: вернуть `A @ 75.2.60.5` — Netlify-копия не удалялась.
+
+Чего нет на этом этапе: сжатия (Object Storage не делает gzip/brotli — для
+страниц в десятки килобайт это некритично) и заголовков из `_headers`
+(Netlify-специфичный файл, в бакет не выгружается). Оба вопроса закрывает
+Yandex CDN поверх бакета — в этапе 2.
+
 ## 1. Российский origin
 
 Статику можно положить куда угодно, где есть S3-совместимое хранилище или

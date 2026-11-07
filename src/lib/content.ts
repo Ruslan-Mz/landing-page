@@ -1,6 +1,6 @@
 // ============================================================
 // Single source of truth. Two faces × two locales.
-// No rates anywhere — engineering shows "available", never pricing.
+// No rates anywhere. Availability badge is off for now (see docs/facts.md).
 // ============================================================
 
 export type Locale = 'en' | 'ru';
@@ -26,7 +26,7 @@ export interface FaceLocale {
   languages?: string;        // rendered under the timeline, not inside it
   processHead?: string;  // "How I work" — engineering only
   process?: Card[];      // 3 short points, client-benefit framing
-  avail?: string;        // engineering CTA badge (no rate)
+  avail?: string;        // availability badge, engineering only; unset = not shown
   colophon: string;     // the quiet colophon line
   crossLabel: string;   // link text to the other face
 }
@@ -51,13 +51,13 @@ export const CONTACTS: Record<Face, Record<Locale, ContactKey>> = {
   engineering: {
     en: {
       email:    'ruslan@mozhaev.pro',
-      // github:   'https://github.com/Ruslan-Mz',   // hidden until public repos exist
+      github:   'https://github.com/Ruslan-Mz',
       linkedin: 'https://www.linkedin.com/in/ruslanmozhaev',
       telegram: 'https://t.me/mozhaevruslan',   // Latvian
     },
     ru: {
       email:    'ruslan@mozhaev.pro',
-      // github:   'https://github.com/Ruslan-Mz',   // hidden until public repos exist
+      github:   'https://github.com/Ruslan-Mz',
       linkedin: 'https://www.linkedin.com/in/ruslanmozhaev',
       telegram: 'https://t.me/ruslanmozhaev',   // Russian — RF clients
     },
@@ -153,9 +153,8 @@ export const CONTENT: Record<Face, Record<Locale, FaceLocale>> = {
         { yr: '2011', t: '<b>Mobile</b> — first my own iOS game, from 2012 enterprise mobile at Ideaport Riga for Nordic clients: industrial equipment, smart home, construction, insurance.' },
         { yr: '2020→', t: '<b>Lead developer</b> on an enterprise mobile app (React Native) — architecture, a team of 4–5, migration to a new stack, offline-first. Now in its third iteration.' },
         { yr: '2023–24', t: '<b>Co-founded</b> a product with a strong focus on accessibility. The whole technical side was mine.' },
-        { yr: 'now', t: '<b>AI</b> — LLM features in production and development with coding agents, which I also bring to the team. Working on my own products in parallel. Open to freelance and contract work.' },
+        { yr: 'now', t: '<b>AI</b> — LLM features in production and development with coding agents, which I also bring to the team. Working on my own products in parallel.' },
       ],
-      avail: 'Available for projects',
       processHead: 'HOW I WORK <span>/ what it looks like from your side</span>',
       process: [
         { h: 'First — what is actually needed', p: 'A task usually comes as “we want roughly this, and it should work well”. I go through it with you first: real scenarios, what counts as done. In nearly twenty years of consulting, first at Accenture and then at Ideaport Riga, I have worked across different industries: telecom, insurance, industrial equipment, smart home, construction. Getting into a new domain takes me weeks, not months.' },
@@ -187,9 +186,8 @@ export const CONTENT: Record<Face, Record<Locale, FaceLocale>> = {
         { yr: '2011', t: '<b>Мобильная разработка</b> — сначала своя iOS-игра, с 2012 корпоративные мобильные проекты в Ideaport Riga для скандинавских заказчиков: промышленное оборудование, умный дом, строительство, страхование.' },
         { yr: '2020→', t: '<b>Lead developer</b> корпоративного мобильного приложения (React Native) — архитектура, команда 4–5 человек, миграция на новый стек, offline-first. Сейчас третья итерация.' },
         { yr: '2023–24', t: '<b>Со-основатель</b> продукта с упором на доступность (accessibility). Вся техническая часть на мне.' },
-        { yr: 'сейчас', t: '<b>ИИ</b> — LLM-функции в продакшене и разработка с ИИ-агентами, которую внедряю и в команде. Параллельно работаю над своими продуктами. Открыт к проектной работе.' },
+        { yr: 'сейчас', t: '<b>ИИ</b> — LLM-функции в продакшене и разработка с ИИ-агентами, которую внедряю и в команде. Параллельно работаю над своими продуктами.' },
       ],
-      avail: 'Открыт к проектам',
       processHead: 'КАК Я РАБОТАЮ <span>/ что видно с вашей стороны</span>',
       process: [
         { h: 'Сначала — что реально нужно', p: 'Задача обычно приходит как «хотим, чтобы было примерно так и хорошо работало». Сначала разбираю её с вами: реальные сценарии, что считать готовым. За почти двадцать лет в консалтинге — сначала в Accenture, затем в Ideaport Riga — я работал в разных индустриях: телеком, страхование, промышленное оборудование, умный дом, строительство. Поэтому в новую предметную область вхожу за недели, а не за месяцы.' },

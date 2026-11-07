@@ -77,10 +77,23 @@ jobs:
           AWS_ACCESS_KEY_ID: ${{ secrets.RU_S3_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.RU_S3_SECRET }}
           AWS_DEFAULT_REGION: ru-central1
+        # The CLI guesses Content-Type from the extension, and on the runner it
+        # does not reliably know .woff2/.woff/.avif — they would go up as
+        # application/octet-stream and the browser would refuse the fonts.
+        # So those get their own passes with the type set explicitly.
         run: |
-          aws s3 sync dist/_astro "s3://${{ secrets.RU_S3_BUCKET }}/_astro" \
-            --endpoint-url "${{ secrets.RU_S3_ENDPOINT }}" \
-            --cache-control "public, max-age=31536000, immutable"
+          imm="public, max-age=31536000, immutable"
+          dst="s3://${{ secrets.RU_S3_BUCKET }}/_astro"
+          ep="${{ secrets.RU_S3_ENDPOINT }}"
+          for pair in "woff2:font/woff2" "woff:font/woff" "avif:image/avif"; do
+            ext="${pair%%:*}"; type="${pair#*:}"
+            aws s3 sync dist/_astro "$dst" --endpoint-url "$ep" \
+              --exclude "*" --include "*.$ext" \
+              --content-type "$type" --cache-control "$imm"
+          done
+          aws s3 sync dist/_astro "$dst" --endpoint-url "$ep" \
+            --exclude "*.woff2" --exclude "*.woff" --exclude "*.avif" \
+            --cache-control "$imm"
 
       - name: Upload pages and the rest
         env:
@@ -90,7 +103,7 @@ jobs:
         run: |
           aws s3 sync dist "s3://${{ secrets.RU_S3_BUCKET }}" \
             --endpoint-url "${{ secrets.RU_S3_ENDPOINT }}" \
-            --exclude "_astro/*" \
+            --exclude "_astro/*" --exclude "_headers" \
             --cache-control "public, max-age=0, must-revalidate"
 
       # Prune pass. --size-only so identical files aren't re-uploaded (which
@@ -103,6 +116,7 @@ jobs:
         run: |
           aws s3 sync dist "s3://${{ secrets.RU_S3_BUCKET }}" \
             --endpoint-url "${{ secrets.RU_S3_ENDPOINT }}" \
+            --exclude "_headers" \
             --size-only \
             --delete
 
